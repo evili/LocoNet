@@ -3,15 +3,23 @@
 
 
 /* Debug over Serial1 (or 2, 3) only if available */
-#if defined(HAVE_HWSERIAL1)
+
 #if defined(DEBUG)
-#define LOCONET_BUFFER_USB_DEBUG Serial1
-#endif
+
+#if defined(HAVE_HWSERIAL1)
+HardwareSerial console = Serial1;
+#else
+HardwareSerial console = Serial;
+#endif /* HAVE_HWSERIAL1 */
+
+#define _DEBUG_(x) console.println(x)
+#define _KLDEBUG_(x)  console.print(x)
+
 #else
 
-#define LOCONET_BUFFER_USB_DEBUG 0
-
-#endif /* HAVE_HWSERIAL1 */
+#define _DEBUG_(x)
+#define _KLDEBUG_(x)
+#endif /* DEBUG */
 
 // Default LocoNet pin
 #define LOCONET_BUFFER_PIN 7
