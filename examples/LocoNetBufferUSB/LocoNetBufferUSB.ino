@@ -57,11 +57,12 @@
 *   arduino pins 13,12,11 & 10.
 *****************************************************************************/
 
+/* enable this to print debug information via the serial port */
+#define DEBUG 1
+
 #include <LocoNet.h>
 #include "LocoNetBufferUSB.h"
-
-//#define DEBUG /* enable this to print debug information via the serial port */
-
+#include "debug.h"
 
 
 const char digitMap[] = "0123456789abcdef";
@@ -84,15 +85,22 @@ void setup()
 	/* First initialize the LocoNet interface */
 	LocoNet.init(LOCONET_BUFFER_PIN);
 
-	/* Configure the serial port for 57600 baud */
-	Serial.begin(57600);
-    Serial.println("LoconetOverSerial buffer started!!");
-
 	/*Initialize a LocoNet packet buffer to buffer bytes from the PC */
 	initLnBuf(&LnTxBuffer) ;
 
-	/* initialise the ethernet device */
+	/* initialise the Serial device */
 	Serial.begin(57600);
+    while(!Serial) {}
+    Serial.write("VERSION ArduinoLoconetEtherBuffer V0.2 built 17 November 2011\r\n");
+
+	/* Configure the console port for 57600 baud */
+ #ifdef DEBUG
+    if(console != Serial)
+    {  
+      console.begin(57600);
+      console.println("LoconetOverSerial buffer started!!");
+    }
+ #endif
 
 }
 
@@ -105,6 +113,10 @@ void loop()
 
 	int gotSerial = Serial.available();
 
+#ifdef DEBUG
+    if(console.available())
+      getConsoleInput();
+#endif
 
 
 	/* Check for any received loconet packets */
@@ -117,9 +129,9 @@ void loop()
 
 
 #ifdef DEBUG
-		Serial.print("Received a message of ");
-		Serial.print(LnPacketSize, DEC);
-		Serial.println(" Bytes from loconet,");
+		console.print("Received a message of ");
+		console.print(LnPacketSize, DEC);
+		console.println(" Bytes from loconet,");
 #endif
 
 		/* Send the loconet packet out over Serial */
@@ -132,8 +144,9 @@ void loop()
 	{
 		if (!gotASerialMessage)
 		{
-			Serial.println("We have a new client");
-			Serial.write("VERSION ArduinoLoconetEtherBuffer V0.2 built 17 November 2011\r\n");
+      #ifdef DEBUG
+			console.println("We have a new client");
+      #endif
 			gotASerialMessage = true;
 		}
 
@@ -193,7 +206,7 @@ void loop()
 				if(IdenBytes == 3)
 				{
 #ifdef DEBUG
-					Serial.print("Received a Serial message: ");
+					console.print("Received a Serial message: ");
 #endif
 					IdenFound = true;
 				}
@@ -207,7 +220,7 @@ void loop()
 			{
 				Serial.write("SENT OK \r\n");
 #ifdef DEBUG
-        Serial.println("!! SENT OK !! ");
+        console.println("!! SENT OK !! ");
 #endif
 				IdenFound = false;
 				IdenBytes = 0;
@@ -243,15 +256,14 @@ static boolean ProcessSerialRxByte(uint8_t offset, uint8_t rxByte, LnBuf* LnTxBu
 		highNibble = true;
 
 #ifdef DEBUG
-		Serial.print(" 0x");
+		console.print(" 0x");
 		if(loconetByte < 16)
 		{
-			Serial.print("0");
+		    console.print("0");
 		}
-		Serial.print(loconetByte, HEX);
+		console.print(loconetByte, HEX);
 #endif
 		/* Add it to the buffer */
-
 		addByteLnBuf( LnTxBuffer, loconetByte ) ;
 
 		/* Check to see if we have received a complete packet yet */
@@ -261,7 +273,7 @@ static boolean ProcessSerialRxByte(uint8_t offset, uint8_t rxByte, LnBuf* LnTxBu
 			/* Send the packet received via Serial to the LocoNet*/
 			LocoNet.send( LoconetPacket ) ;
 #ifdef DEBUG
-				Serial.println(" ");
+				console.println(" ");
 #endif	
 			return true;
 		}
@@ -316,30 +328,30 @@ static void SendLoconetMessageViaSerial(lnMsg *LoconetPacket, uint8_t PacketSize
 static void dumpPacket(char* dPacket)
 {
 	int i = 0;
-	Serial.println("# Dumping TX TCP Packet");
-	Serial.print("## 0: ");
+	console.println("# Dumping TX TCP Packet");
+	console.print("## 0: ");
 	while(*dPacket != 0)
 	{
-		Serial.print("0x:");
+		console.print("0x:");
 		if(*dPacket < 16)
 		{
-			Serial.print("0");
+			console.print("0");
 		}
-		Serial.print(*dPacket,HEX);
+		console.print(*dPacket,HEX);
 		i++;
 		*dPacket++;
 		if((i%10) == 0)
 		{
-                        Serial.println("  ");
-			Serial.print(i, DEC);
-			Serial.print("  ");
+                        console.println("  ");
+			console.print(i, DEC);
+			console.print("  ");
 		}
 		else
 		{
-			Serial.print(" ");
+			console.print(" ");
 		}
 	} 
-	Serial.println("\r\n");
+	console.println("\r\n");
 }
 
 #endif
