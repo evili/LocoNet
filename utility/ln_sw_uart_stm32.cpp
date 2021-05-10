@@ -46,6 +46,7 @@
 #include "ln_buf.h"    
 #include "ln_sw_uart.h"    
 #include <Arduino.h>
+#include <HardwareTimer.h>
 
 volatile uint8_t  lnState;
 volatile uint8_t  lnBitCount;
@@ -90,11 +91,6 @@ void setTxPortAndPin(LnPortAddrType newTxPort, uint8_t newTxPin)
 
 void ln_stm32_pin_isr()
 {
-	// Check if it really was EXTI14 that triggered this interrupt.
-	if (!exti_get_flag_status(EXTI14)) {
-		// Ignore any interrupt that is not EXTI14.
-		return;
-	}
 
 	// Disable the Input Comparator Interrupt
 	LN_CLEAR_START_BIT_FLAG();
@@ -107,7 +103,6 @@ void ln_stm32_pin_isr()
 	// Clear the current Compare interrupt status bit and enable the Compare interrupt
 	LN_CLEAR_TIMER_FLAG();
 	LN_ENABLE_TIMER_INTERRUPT();
-#endif
 
 	// Set the State to indicate that we have begun to Receive
 	lnState = LN_ST_RX;
@@ -130,16 +125,11 @@ void ln_stm32_pin_isr()
  **************************************************************************/
 
 void ln_stm32_timer_isr() /* signal handler for timer2 overflow */
-#endif
 {
 	LN_CLEAR_TIMER_FLAG();
 	lnCompareTarget += LN_TIMER_RX_RELOAD_PERIOD;
-#  if defined(STM32)
-	timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
-#  else
 	LN_TMR_OUTP_CAPT_REG = lnCompareTarget;
-#  endif
-#endif
+        
 	lnBitCount++;                // Increment bit_counter
 
 	if (lnState == LN_ST_RX) {  // Are we in RX mode
@@ -165,7 +155,7 @@ void ln_stm32_timer_isr() /* signal handler for timer2 overflow */
 		if (bit_is_set(LN_RX_PORT, LN_RX_BIT)) {
 #else
 		if (bit_is_clear(LN_RX_PORT, LN_RX_BIT)) {
-#endif		
+#endif
 			// ERROR_LED_ON();
 			lnRxBuffer->Stats.RxErrors++;
 		}
@@ -209,7 +199,6 @@ void ln_stm32_timer_isr() /* signal handler for timer2 overflow */
 			LN_SW_UART_SET_TX_LOW(LN_TX_PORT, LN_TX_BIT);
 			lnCompareTarget = timer_get_counter(TIM2) + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST;
 			timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
-#endif
 		}
 		else {
 			// Successfully Sent all bytes in the buffer

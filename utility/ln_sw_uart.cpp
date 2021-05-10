@@ -37,26 +37,21 @@
  * See the C include ln_interface.h file for a description of each function
  *
  *****************************************************************************/
-
-#include <string.h>
-#include "ln_config.h"
-#include "LocoNet.h"
-#include "ln_buf.h"    
-#include "ln_sw_uart.h"    
+#ifndef ARDUINO_ARCH_STM32
 
 #if defined(ESP8266)
-#include <Arduino.h>
+#  include <Arduino.h>
  // The Arduino standard GPIO routines are not enough,
  // must use some from the Espressif SDK as well
 extern "C" {
 #  include "gpio.h"
 }
-#elif defined(STM32)
-//#  include <libopencm3/cm3/nvic.h>
-//#  include <libopencm3/stm32/exti.h>
-//#  include <libopencm3/stm32/gpio.h>
-//#  include <libopencm3/stm32/rcc.h>
-//#  include <libopencm3/stm32/timer.h>
+#elif defined(STM32F1)
+#  include <libopencm3/cm3/nvic.h>
+#  include <libopencm3/stm32/exti.h>
+#  include <libopencm3/stm32/gpio.h>
+#  include <libopencm3/stm32/rcc.h>
+#  include <libopencm3/stm32/timer.h>
 #else
 #  include <avr/io.h>
 #  include <avr/interrupt.h>
@@ -68,6 +63,11 @@ extern "C" {
 #  include "WProgram.h"
 #endif
 
+#include <string.h>
+#include "ln_config.h"
+#include "LocoNet.h"
+#include "ln_buf.h"    
+#include "ln_sw_uart.h"    
 
 volatile uint8_t  lnState;
 volatile uint8_t  lnBitCount;
@@ -100,11 +100,8 @@ uint8_t           txPin;
 
 void setTxPortAndPin(LnPortAddrType newTxPort, uint8_t newTxPin)
 {
-#if defined(ESP8266)
+#ifndef ESP8266  
 	txPort = newTxPort;
-#elif defined(STM32)
-	// Mute unused parameter warning
-	(void)(newTxPort);
 #else
 	// Mute unused parameter warning
 	(void)(newTxPort);
@@ -133,7 +130,7 @@ bool ICACHE_RAM_ATTR isLocoNetCollision()
 }
 #endif
 
-#if defined(STM32)
+#if defined(STM32F1)
 #  define bit_is_set(PORT, PIN) (((PORT >> PIN) & 0x01) != 0)
 #  define bit_is_clear(PORT, PIN) (((PORT >> PIN) & 0x01) == 0)
 #endif
@@ -152,13 +149,11 @@ bool ICACHE_RAM_ATTR isLocoNetCollision()
 
 #if defined(ESP8266)
 void ICACHE_RAM_ATTR ln_esp8266_pin_isr()
-#elif defined(STM32)
-void ln_stm32_pin_isr()
 #else
 ISR(LN_SB_SIGNAL)
 #endif
 {
-#if defined(STM32)
+#if defined(STM32F1)
 	// Check if it really was EXTI14 that triggered this interrupt.
 	if (!exti_get_flag_status(EXTI14)) {
 		// Ignore any interrupt that is not EXTI14.
@@ -173,18 +168,12 @@ ISR(LN_SB_SIGNAL)
 	// Attach timer interrupt handler and restart timer
 	timer1_attachInterrupt(ln_esp8266_timer1_isr);
 	timer1_write(LN_TIMER_RX_START_PERIOD);
-#elif defined(STM32)
-        // Disable the pin interrupt
-        detachInterrupt(digitalPinToInterrupt(LN_RX_PORT))
-        // Attach timer interrupt handler and restart timer
-        timer1_attachInterrupt(ln_stm32_timer1_isr);
-        timer1_write(LN_TIMER_RX_START_PERIOD);
 #else
 	// Disable the Input Comparator Interrupt
 	LN_CLEAR_START_BIT_FLAG();
 	LN_DISABLE_START_BIT_INTERRUPT();
 
-#  if defined(STM32)
+#  if defined(STM32F1)
 	lnCompareTarget = timer_get_counter(TIM2) + LN_TIMER_RX_START_PERIOD;
 	/* Set the initual output compare value for OC1. */
 	timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
@@ -234,7 +223,7 @@ ISR(LN_TMR_SIGNAL)     /* signal handler for timer0 overflow */
 #else
 	LN_CLEAR_TIMER_FLAG();
 	lnCompareTarget += LN_TIMER_RX_RELOAD_PERIOD;
-#  if defined(STM32)
+#  if defined(STM32F1)
 	timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
 #  else
 	LN_TMR_OUTP_CAPT_REG = lnCompareTarget;
@@ -261,12 +250,6 @@ ISR(LN_TMR_SIGNAL)     /* signal handler for timer0 overflow */
 		attachInterrupt(digitalPinToInterrupt(LN_RX_PORT), ln_esp8266_pin_isr, RISING);
 #else
 		attachInterrupt(digitalPinToInterrupt(LN_RX_PORT), ln_esp8266_pin_isr, FALLING);
-#endif
-#elif defined(STM32)
-#ifdef LN_SW_UART_RX_INVERTED
-		attachInterrupt(digitalPinToInterrupt(LN_RX_PORT), ln_stm32_pin_isr, RISING);
-#else
-		attachInterrupt(digitalPinToInterrupt(LN_RX_PORT), ln_stm32_pin_isr, FALLING);
 #endif
 #else
 		// Clear the Start Bit Interrupt Status Flag and Enable ready to 
@@ -327,7 +310,7 @@ ISR(LN_TMR_SIGNAL)     /* signal handler for timer0 overflow */
 #else
 			// Get the Current Timer1 Count and Add the offset for the Compare target
 			// added adjustment value for bugfix (Olaf Funke)
-#  if defined(STM32)
+#  if defined(STM32F1)
 			lnCompareTarget = timer_get_counter(TIM2) + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST;
 			timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
 #  else
@@ -410,7 +393,7 @@ void initLocoNetHardware(LnBuf * RxBuffer)
 	// Set the RX line to Input
 #if defined(ESP8266)
 	pinMode(LN_RX_PORT, INPUT);
-#elif defined(STM32)
+#elif defined(STM32F1)
 	pinMode(LN_RX_PIN_NAME, INPUT);
 #else
 	cbi(LN_RX_DDR, LN_RX_BIT);
@@ -422,7 +405,7 @@ void initLocoNetHardware(LnBuf * RxBuffer)
 #if defined(ESP8266)
 	timer1_detachInterrupt();
 	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
-#elif defined(STM32)
+#elif defined(STM32F1)
 	// === Setup the timer ===
 
 	// Enable TIM2 clock. 
@@ -523,7 +506,7 @@ void initLocoNetHardware(LnBuf * RxBuffer)
 
 	// Set Timer Clock Source 
 	LN_TMR_CONTROL_REG = (LN_TMR_CONTROL_REG & 0xF8) | LN_TMR_PRESCALER;
-#endif // STM32
+#endif // STM32F1 
 }
 
 
@@ -594,7 +577,7 @@ LN_STATUS sendLocoNetPacketTry(lnMsg * TxData, unsigned char ucPrioDelay)
 #else
 	// Before we do anything else - Disable StartBit Interrupt
 	LN_DISABLE_START_BIT_INTERRUPT();
-#  if defined(STM32)
+#  if defined(STM32F1)
 	if (exti_get_flag_status(EXTI14)) {
 #  else
 	if (bit_is_set(LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT)) {
@@ -621,7 +604,7 @@ LN_STATUS sendLocoNetPacketTry(lnMsg * TxData, unsigned char ucPrioDelay)
 #if !defined(ESP8266)
   // Get the Current Timer1 Count and Add the offset for the Compare target
   // added adjustment value for bugfix (Olaf Funke)
-#  if defined(STM32)
+#  if defined(STM32F1)
 	lnCompareTarget = timer_get_counter(TIM2) + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST;
 	/* Set the initual output compare value for OC1. */
 	timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
@@ -667,3 +650,4 @@ LN_STATUS sendLocoNetPacketTry(lnMsg * TxData, unsigned char ucPrioDelay)
 	}
 	return LN_UNKNOWN_ERROR; // everything else is an error
 }
+#endif // #ifndef ARDUINO_ARCH_STM32
