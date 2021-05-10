@@ -55,7 +55,7 @@
  // figure out what board we are building
 
  // Common defines
-#if !defined(STM32F1) && !defined(ESP8266)
+#if !defined(STM32) && !defined(ESP8266)
 #  ifdef PINL	//      For the Mega 2560 (should work with 1280, etc)
 #    define _LNET_USE_MEGA
 #  else		//	For the UNO:
@@ -72,7 +72,7 @@
 #  endif
 #endif
 
-#if defined(STM32F1)
+#if defined(STM32)
 typedef uint32_t LnPortRegisterType;
 typedef uint32_t LnCompareTargetType;
 #else
@@ -95,7 +95,7 @@ typedef volatile LnPortRegisterType* LnPortAddrType;
 #  define LN_BIT_PERIOD               ((F_CPU / 16) / 16666)
 #  define LN_TIMER_TX_RELOAD_ADJUST   60
 #else
-#  if defined(STM32F1)
+#  if defined(STM32)
 #    define LN_BIT_PERIOD             (rcc_apb1_frequency * 2 / 16666)
 #  else
 #    define LN_BIT_PERIOD             (F_CPU / 16666)
@@ -200,7 +200,7 @@ typedef volatile LnPortRegisterType* LnPortAddrType;
 #define LN_TMR_CONTROL_REG    TCCR1B    // the code.
 #define LN_INIT_COMPARATOR() { TCCR1A = 0; TCCR1B = 0x01; }    // no prescaler, normal mode
 
-#elif defined(STM32F1)
+#elif defined(STM32)
 
 #define LN_RX_PIN_NAME PB14
 #define LN_RX_PORT  (*portInputRegister(GPIOB))

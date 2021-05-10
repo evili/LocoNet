@@ -72,6 +72,14 @@
 #include "WProgram.h"
 #endif
 
+#if defined(STM32F1) || defined(STM32F7)
+#define STM32F
+#endif
+
+#if defined(STM32F)
+#define STM32
+#endif
+
 #include "utility/ln_buf.h"
 #include "utility/ln_opc.h"
 #include "utility/utils.h"
@@ -330,7 +338,7 @@ public:
 /************************************************************************************
 	SV (System Variable Handling
 ************************************************************************************/
-#if defined(STM32F1)
+#if defined(STM32)
 // STM31F1 has no flash.
 #else
 

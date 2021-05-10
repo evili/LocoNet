@@ -83,7 +83,7 @@ uint8_t eeprom_read_byte(const uint8_t* offset) {
 void eeprom_write_byte(const uint8_t* offset, uint8_t value) {
 	EEPROM.write((int)offset, value);
 }
-#elif defined(STM32F1)
+#elif defined(STM32)
 #  include <FreeRTOS.h>
 #  include <task.h>
 #  include <libopencm3/stm32/gpio.h>
@@ -139,7 +139,7 @@ void LocoNetClass::init(uint8_t txPin)
 
 void LocoNetClass::setTxPin(uint8_t txPin)
 {
-	//#if defined(STM32F1) && !defined(__ARDUINO__)
+	//#if defined(STM32) && !defined(__ARDUINO__)
 	{
 		//  uint16_t bitNum = 15;
 		//  gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, (1 << bitNum));  // LN TX
@@ -1426,7 +1426,7 @@ void LocoNetFastClockClass::process66msActions(void)
 	}
 }
 
-#if defined(STM32F1)
+#if defined(STM32)
 // STM31F1 has no EEPROM.
 #else
 

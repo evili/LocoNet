@@ -43,7 +43,7 @@
 
 #ifdef ESP8266
 #  include <Arduino.h>
-#elif !defined(STM32F1)
+#elif !defined(STM32)
 #  include <avr/io.h>
 #  include <avr/interrupt.h>
 #endif
@@ -85,7 +85,7 @@
 #  endif
 #endif
 
-#if defined(STM32F1)
+#if defined(STM32)
 //Clear StartBit Interrupt flag
 #  define LN_CLEAR_START_BIT_FLAG() (exti_reset_request(EXTI14))
 //Enable StartBit Interrupt

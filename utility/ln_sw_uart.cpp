@@ -45,7 +45,7 @@
 extern "C" {
 #  include "gpio.h"
 }
-#elif defined(STM32F1)
+#elif defined(STM32)
 #  include <libopencm3/cm3/nvic.h>
 #  include <libopencm3/stm32/exti.h>
 #  include <libopencm3/stm32/gpio.h>
@@ -129,7 +129,7 @@ bool ICACHE_RAM_ATTR isLocoNetCollision()
 }
 #endif
 
-#if defined(STM32F1)
+#if defined(STM32)
 #  define bit_is_set(PORT, PIN) (((PORT >> PIN) & 0x01) != 0)
 #  define bit_is_clear(PORT, PIN) (((PORT >> PIN) & 0x01) == 0)
 #endif
@@ -152,7 +152,7 @@ void ICACHE_RAM_ATTR ln_esp8266_pin_isr()
 ISR(LN_SB_SIGNAL)
 #endif
 {
-#if defined(STM32F1)
+#if defined(STM32)
 	// Check if it really was EXTI14 that triggered this interrupt.
 	if (!exti_get_flag_status(EXTI14)) {
 		// Ignore any interrupt that is not EXTI14.
@@ -172,7 +172,7 @@ ISR(LN_SB_SIGNAL)
 	LN_CLEAR_START_BIT_FLAG();
 	LN_DISABLE_START_BIT_INTERRUPT();
 
-#  if defined(STM32F1)
+#  if defined(STM32)
 	lnCompareTarget = timer_get_counter(TIM2) + LN_TIMER_RX_START_PERIOD;
 	/* Set the initual output compare value for OC1. */
 	timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
@@ -222,7 +222,7 @@ ISR(LN_TMR_SIGNAL)     /* signal handler for timer0 overflow */
 #else
 	LN_CLEAR_TIMER_FLAG();
 	lnCompareTarget += LN_TIMER_RX_RELOAD_PERIOD;
-#  if defined(STM32F1)
+#  if defined(STM32)
 	timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
 #  else
 	LN_TMR_OUTP_CAPT_REG = lnCompareTarget;
@@ -309,7 +309,7 @@ ISR(LN_TMR_SIGNAL)     /* signal handler for timer0 overflow */
 #else
 			// Get the Current Timer1 Count and Add the offset for the Compare target
 			// added adjustment value for bugfix (Olaf Funke)
-#  if defined(STM32F1)
+#  if defined(STM32)
 			lnCompareTarget = timer_get_counter(TIM2) + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST;
 			timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
 #  else
@@ -392,7 +392,7 @@ void initLocoNetHardware(LnBuf * RxBuffer)
 	// Set the RX line to Input
 #if defined(ESP8266)
 	pinMode(LN_RX_PORT, INPUT);
-#elif defined(STM32F1)
+#elif defined(STM32)
 	pinMode(LN_RX_PIN_NAME, INPUT);
 #else
 	cbi(LN_RX_DDR, LN_RX_BIT);
@@ -404,7 +404,7 @@ void initLocoNetHardware(LnBuf * RxBuffer)
 #if defined(ESP8266)
 	timer1_detachInterrupt();
 	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
-#elif defined(STM32F1)
+#elif defined(STM32)
 	// === Setup the timer ===
 
 	// Enable TIM2 clock. 
@@ -505,7 +505,7 @@ void initLocoNetHardware(LnBuf * RxBuffer)
 
 	// Set Timer Clock Source 
 	LN_TMR_CONTROL_REG = (LN_TMR_CONTROL_REG & 0xF8) | LN_TMR_PRESCALER;
-#endif // STM32F1 
+#endif // STM32
 }
 
 
@@ -576,7 +576,7 @@ LN_STATUS sendLocoNetPacketTry(lnMsg * TxData, unsigned char ucPrioDelay)
 #else
 	// Before we do anything else - Disable StartBit Interrupt
 	LN_DISABLE_START_BIT_INTERRUPT();
-#  if defined(STM32F1)
+#  if defined(STM32)
 	if (exti_get_flag_status(EXTI14)) {
 #  else
 	if (bit_is_set(LN_SB_INT_STATUS_REG, LN_SB_INT_STATUS_BIT)) {
@@ -603,7 +603,7 @@ LN_STATUS sendLocoNetPacketTry(lnMsg * TxData, unsigned char ucPrioDelay)
 #if !defined(ESP8266)
   // Get the Current Timer1 Count and Add the offset for the Compare target
   // added adjustment value for bugfix (Olaf Funke)
-#  if defined(STM32F1)
+#  if defined(STM32)
 	lnCompareTarget = timer_get_counter(TIM2) + LN_TIMER_TX_RELOAD_PERIOD - LN_TIMER_TX_RELOAD_ADJUST;
 	/* Set the initual output compare value for OC1. */
 	timer_set_oc_value(TIM2, TIM_OC1, lnCompareTarget);
