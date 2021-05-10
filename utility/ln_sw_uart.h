@@ -41,6 +41,14 @@
 #ifndef _LN_SW_UART_INCLUDED
 #define _LN_SW_UART_INCLUDED
 
+#if defined(STM32F1) || defined(STM32F7)
+#define STM32F
+#endif
+
+#if defined(STM32F)
+#define STM32
+#endif
+
 #ifdef ESP8266
 #  include <Arduino.h>
 #elif !defined(STM32)
@@ -176,9 +184,12 @@
 void initLocoNetHardware(LnBuf* RxBuffer);
 void setTxPortAndPin(LnPortAddrType newTxPort, uint8_t newTxPin);
 LN_STATUS sendLocoNetPacketTry(lnMsg* TxData, unsigned char ucPrioDelay);
-#ifdef ESP8266
+#if defined(ESP8266)
 void ICACHE_RAM_ATTR ln_esp8266_pin_isr();
 void ICACHE_RAM_ATTR ln_esp8266_timer1_isr();
+#elif defined(STM32)
+void ln_stm32_pin_isr();
+void ln_stm32_timer1_isr();
 #endif
 
 #endif

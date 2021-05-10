@@ -86,7 +86,7 @@ void eeprom_write_byte(const uint8_t* offset, uint8_t value) {
 #elif defined(STM32)
 #  include <FreeRTOS.h>
 #  include <task.h>
-#  include <libopencm3/stm32/gpio.h>
+// #  include <libopencm3/stm32/gpio.h>
 #  include <cstdint>
 #else
 #  include <avr/eeprom.h>
@@ -148,7 +148,11 @@ void LocoNetClass::setTxPin(uint8_t txPin)
 	//#else
 	pinMode(txPin, OUTPUT);
 
-#ifndef ESP8266
+#if defined(ESP8266)
+        setTxPortAndPin(nullptr, txPin);
+#elif defined(STM32)
+	setTxPortAndPin(nullptr, txPin);
+#else   // Arduino
 	// Not figure out which Port bit is the Tx Bit from the Arduino pin number
 	LnPortRegisterType bitMask = digitalPinToBitMask(txPin);
 	LnPortRegisterType bitMaskTest = 0x01;
@@ -161,8 +165,6 @@ void LocoNetClass::setTxPin(uint8_t txPin)
 		bitMaskTest = 1 << ++bitNum;
 
 	setTxPortAndPin(out, bitNum);
-#else
-	setTxPortAndPin(nullptr, txPin);
 #endif
 }
 

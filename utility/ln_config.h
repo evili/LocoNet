@@ -51,6 +51,8 @@
  * correct bit levels depending on inverse / non-inverse transmit.
  */
 
+#include <stdint.h>
+
  // John Plocher
  // figure out what board we are building
 
